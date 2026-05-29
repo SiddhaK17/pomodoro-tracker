@@ -1,8 +1,3 @@
-import os
-
-os.environ['TCL_LIBRARY'] = r'C:\Program Files\Python313\tcl\tcl8.6'
-os.environ['TK_LIBRARY'] = r'C:\Program Files\Python313\tcl\tk8.6'
-
 from tkinter import *
 import math
 # ---------------------------- CONSTANTS ------------------------------- #
@@ -16,20 +11,32 @@ SHORT_BREAK_MIN = 5
 LONG_BREAK_MIN = 20
 reps = 0
 timer = None
+timer_running = False
 
 # ---------------------------- TIMER RESET ------------------------------- #
 
 def reset_timer():
-    window.after_cancel(timer)         #This way we can cancel the timer we had set up previously
+    global reps, timer, timer_running
+
+    if timer is not None:
+        window.after_cancel(timer)         #This way we can cancel the timer we had set up previously
+
     canvas.itemconfig(timer_text, text="00:00")
-    title_label.config(text="Timer")
+    title_label.config(text="Timer", fg=GREEN)
     check_marks.config(text="")
-    global reps
+
     reps = 0
+    timer = None
+    timer_running = False
 
 # ---------------------------- TIMER MECHANISM ------------------------------- #
 def start_timer():
-    global reps
+    global reps, timer_running
+
+    if timer_running:
+        return
+
+    timer_running = True
     reps += 1
 
     work_sec = WORK_MIN * 60
@@ -37,40 +44,52 @@ def start_timer():
     long_break_sec = LONG_BREAK_MIN * 60
 
     if reps % 8 == 0:
-        count_down(long_break_sec)
         title_label.config(text="Break", fg=RED)
+        count_down(long_break_sec)
+
     elif reps % 2 == 0:
-        count_down(short_break_sec)
         title_label.config(text="Break", fg=PINK)
+        count_down(short_break_sec)
+
     else:
-        count_down(work_sec)
         title_label.config(text="Work", fg=GREEN)
+        count_down(work_sec)
 
 # ---------------------------- COUNTDOWN MECHANISM ------------------------------- #
 def count_down(count):
 
-    count_min = math.floor(count / 60)
+    count_min = count // 60
     count_sec = count % 60
-    if count_sec < 10:          #Here we are using dynamic typing to change the data type of count_sec from an integer to a string. And then we use that string to display inside this canvas text
-        count_sec = f"0{count_sec}"
+    # if count_sec < 10:          #Here we are using dynamic typing to change the data type of count_sec from an integer to a string. And then we use that string to display inside this canvas text
+    #     count_sec = f"0{count_sec}"
 
-    canvas.itemconfig(timer_text, text=f"{count_min}:{count_sec}")
+    canvas.itemconfig(timer_text, text=f"{count_min:02d}:{count_sec:02d}")
     if count > 0:
         global timer
         timer = window.after(1000, count_down, count - 1)
     else:
-        start_timer()
+        global timer_running
+        timer_running = False
+
         marks = ""
-        work_sessions = math.floor(reps / 2)
+        work_sessions = reps // 2
+
         for _ in range(work_sessions):
             marks += "✔"
+
         check_marks.config(text=marks)
+
+        start_timer()
 
 
 # ---------------------------- UI SETUP ------------------------------- #
 window = Tk()
 window.title("Pomodoro")
 window.config(padx=100, pady=50, bg=YELLOW)
+try:
+    window.iconphoto(False, PhotoImage(file="tomato.png"))
+except Exception:
+    pass
 
 
 title_label = Label(text="Timer", fg=GREEN, bg=YELLOW, font=(FONT_NAME, 50))
